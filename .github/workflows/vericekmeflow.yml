@@ -1,4 +1,4 @@
-name: Is Yatirim Scraper CI
+name: BIST Temel Veri Çekme
 
 on:
   push:
