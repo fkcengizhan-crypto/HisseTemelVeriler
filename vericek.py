@@ -19,8 +19,8 @@ except ImportError:
 # ══════════════════════════════════════════════════════
 # AYARLAR VE GLOBAL DEĞİŞKENLER
 # ══════════════════════════════════════════════════════
-PARALEL_TARAYICI = 8
-SAYFA_BEKLEME   = 3      # DÜZELTİLDİ: 3 → 5 sn (JS yüklenme süresi için)
+PARALEL_TARAYICI = 7
+SAYFA_BEKLEME   = 5      # DÜZELTİLDİ: 3 → 5 sn (JS yüklenme süresi için)
 MAX_DENEME      = 2      # DÜZELTİLDİ: artık kullanılıyor
 TXT_DOSYA       = "hisseisimleri.txt"
 
@@ -78,20 +78,20 @@ def oku_txt(dosya):
         print(f"HATA: '{dosya}' dosyası boş!")
     return kodlar
 
-def chrome_olustur():
+def chrome_olustur(driver_path: str):
+    """driver_path: main()'de bir kez indirilen ChromeDriver binary yolu."""
     opts = Options()
     opts.add_argument("--headless")
     opts.add_argument("--no-sandbox")
     opts.add_argument("--disable-gpu")
     opts.add_argument("--disable-dev-shm-usage")
     opts.add_argument("--window-size=1920,1080")
-    # Bot tespitini azaltmak için user-agent
     opts.add_argument(
         "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
         "AppleWebKit/537.36 (KHTML, like Gecko) "
         "Chrome/120.0.0.0 Safari/537.36"
     )
-    svc = Service(ChromeDriverManager().install())
+    svc = Service(driver_path)
     return webdriver.Chrome(service=svc, options=opts)
 
 # ══════════════════════════════════════════════════════
@@ -188,11 +188,11 @@ def ayristir(html, kod):
 # WORKER
 # ══════════════════════════════════════════════════════
 
-def worker_calis(kodlar_q, sonuclar, toplam, worker_id):
+def worker_calis(kodlar_q, sonuclar, toplam, worker_id, driver_path):
     global cekilen_sayisi
     driver = None
     try:
-        driver = chrome_olustur()
+        driver = chrome_olustur(driver_path)
         while True:
             try:
                 sira, kod = kodlar_q.get_nowait()
@@ -263,6 +263,11 @@ def main():
     toplam = len(kodlar)
     print(f"\n{toplam} hisse için işlem başladı... ({PARALEL_TARAYICI} paralel tarayıcı)\n")
 
+    # ── ChromeDriver'ı tek seferlik indir (race condition önlemi) ──
+    print("  ChromeDriver indiriliyor/kontrol ediliyor...")
+    driver_path = ChromeDriverManager().install()
+    print(f"  ChromeDriver hazır: {driver_path}\n")
+
     kodlar_q = queue.Queue()
     for i, k in enumerate(kodlar):
         kodlar_q.put((i, k))
@@ -272,7 +277,7 @@ def main():
     for wid in range(1, min(PARALEL_TARAYICI, toplam) + 1):
         t = threading.Thread(
             target=worker_calis,
-            args=(kodlar_q, sonuclar, toplam, wid),
+            args=(kodlar_q, sonuclar, toplam, wid, driver_path),
             daemon=True,
         )
         t.start()
