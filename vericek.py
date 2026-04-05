@@ -1,5 +1,4 @@
 import sys, time, re, os, queue, threading
-from datetime import datetime
 from bs4 import BeautifulSoup
 from openpyxl import Workbook
 from openpyxl.styles import Font
@@ -286,8 +285,7 @@ def main():
     for t in threads:
         t.join()
 
-    tarih = datetime.now().strftime("%Y%m%d_%H%M")
-    dosya_adi = f"IsYatirim_{tarih}.xlsx"
+    dosya_adi = "IsYatirim_Guncel.xlsx"
     excel_yaz(sonuclar, dosya_adi)
     print(f"\nTamamlandı → {dosya_adi}")
 
