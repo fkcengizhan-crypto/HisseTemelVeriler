@@ -15,9 +15,6 @@ except ImportError:
     print("Eksik: pip install selenium openpyxl beautifulsoup4 webdriver-manager")
     sys.exit(1)
 
-# ══════════════════════════════════════════════════════
-# AYARLAR
-# ══════════════════════════════════════════════════════
 PARALEL_TARAYICI = 7
 SAYFA_BEKLEME    = 5
 MAX_DENEME       = 2
@@ -39,62 +36,40 @@ OZET_SUTUNLAR = [
     ("Adres",                "kunye.Adres"),
 ]
 
-# ══════════════════════════════════════════════════════
-# YARDIMCI
-# ══════════════════════════════════════════════════════
-
 def temizle(x):
     return " ".join(str(x).split()).strip() if x else ""
 
 def sayi(x):
-    if x is None:
-        return None
+    if x is None: return None
     s = str(x).strip().replace(".", "").replace(",", ".")
     s = re.sub(r"[^\d.\-]", "", s)
-    try:
-        return float(s)
-    except ValueError:
-        return None
+    try: return float(s)
+    except ValueError: return None
 
 def deger_al(kayit, yol):
     parcalar = yol.split(".", 1)
     val = kayit.get(parcalar[0])
-    if len(parcalar) == 1:
-        return val
-    if isinstance(val, dict):
-        return deger_al(val, parcalar[1])
+    if len(parcalar) == 1: return val
+    if isinstance(val, dict): return deger_al(val, parcalar[1])
     return None
 
 def oku_txt(dosya):
     if not os.path.exists(dosya):
-        print(f"HATA: '{dosya}' bulunamadı!")
+        print(f"HATA: '{dosya}' bulunamadi!")
         return []
     with open(dosya, "r", encoding="utf-8") as f:
         kodlar = [l.strip().upper() for l in f if l.strip()]
     if not kodlar:
-        print(f"HATA: '{dosya}' boş!")
+        print(f"HATA: '{dosya}' bos!")
     return kodlar
 
-# ══════════════════════════════════════════════════════
-# CHROME KURULUMU
-# ══════════════════════════════════════════════════════
-
 def chrome_ve_driver_bul():
-    """
-    GitHub Actions'da browser-actions/setup-chrome hem 'chrome' hem
-    'chromedriver'ı PATH'e ekler. Sistem PATH'i öncelikli, yoksa
-    webdriver-manager ile indir.
-    """
-    # ChromeDriver
     driver_path = shutil.which("chromedriver")
     if driver_path:
-        print(f"  [chromedriver] PATH'ten bulundu: {driver_path}")
+        print(f"  [chromedriver] PATH: {driver_path}")
     else:
-        print("  [chromedriver] PATH'te yok, webdriver-manager ile indiriliyor...")
+        print("  [chromedriver] webdriver-manager ile indiriliyor...")
         driver_path = ChromeDriverManager().install()
-        print(f"  [chromedriver] İndirildi: {driver_path}")
-
-    # Chrome binary
     chrome_bin = (
         shutil.which("chrome") or
         shutil.which("google-chrome") or
@@ -103,12 +78,10 @@ def chrome_ve_driver_bul():
         shutil.which("chromium")
     )
     if chrome_bin:
-        print(f"  [chrome]       PATH'ten bulundu: {chrome_bin}")
+        print(f"  [chrome]       PATH: {chrome_bin}")
     else:
-        print("  [chrome]       PATH'te bulunamadı, Selenium varsayılanı kullanılacak.")
-
+        print("  [chrome]       Varsayilan kullanilacak.")
     return driver_path, chrome_bin
-
 
 def chrome_olustur(driver_path, chrome_bin=None):
     opts = Options()
@@ -123,12 +96,7 @@ def chrome_olustur(driver_path, chrome_bin=None):
     )
     if chrome_bin:
         opts.binary_location = chrome_bin
-    svc = Service(driver_path)
-    return webdriver.Chrome(service=svc, options=opts)
-
-# ══════════════════════════════════════════════════════
-# SAYFA ÇEKME
-# ══════════════════════════════════════════════════════
+    return webdriver.Chrome(service=Service(driver_path), options=opts)
 
 def sayfa_cek(driver, kod):
     url = (
@@ -144,39 +112,29 @@ def sayfa_cek(driver, kod):
             time.sleep(SAYFA_BEKLEME)
             return driver.page_source
         except Exception as e:
-            print(f"\n  [UYARI] {kod} deneme {deneme}/{MAX_DENEME}: {e}")
+            print(f"\n  [UYARI] {kod} deneme {deneme}/{MAX_DENEME}: {type(e).__name__}")
             if deneme < MAX_DENEME:
                 time.sleep(3)
-    # Son denemede ne varsa al
     try:
         return driver.page_source
     except Exception:
         return ""
 
-# ══════════════════════════════════════════════════════
-# HTML AYRIŞTIRMA
-# ══════════════════════════════════════════════════════
-
 def ayristir(html, kod):
     soup = BeautifulSoup(html, "html.parser")
     kayit = {
-        "kod":       kod,
+        "kod":        kod,
         "sirket_adi": kod,
-        "kunye":     {},
-        "cari":      {},
-        "mali_ozet": {},
+        "kunye":      {},
+        "cari":       {},
+        "mali_ozet":  {},
     }
+    # Sirket adi - h1'den "|" oncesi
+    h1 = soup.find("h1")
+    if h1:
+        kayit["sirket_adi"] = temizle(h1.get_text()).split("|")[0].strip()
 
-    # Şirket adı
-    for sel in ["h1", "h2", ".company-name", ".card-title"]:
-        el = soup.select_one(sel)
-        if el:
-            ad = temizle(el.get_text())
-            if ad and ad.upper() != kod:
-                kayit["sirket_adi"] = ad
-                break
-
-    # Tablo taraması
+    # Tablo tarama - TAM eslesme kullan (isyatirim basliklar sabit)
     for tablo in soup.find_all("table"):
         for satir in tablo.find_all("tr"):
             hucreler = satir.find_all(["td", "th"])
@@ -186,43 +144,34 @@ def ayristir(html, kod):
             v = temizle(hucreler[1].get_text())
             if not k or not v:
                 continue
+            if   k == "F/K":           kayit["cari"]["F/K"]           = sayi(v)
+            elif k == "FD/FAVOK" or k == "FD/FAVÖK": kayit["cari"]["FD/FAVÖK"] = sayi(v)
+            elif k == "PD/DD":         kayit["cari"]["PD/DD"]         = sayi(v)
+            elif k == "Piyasa Degeri" or k == "Piyasa Değeri":
+                                       kayit["cari"]["Piyasa Değeri"] = sayi(v)
+            elif k == "Net Kar" or k == "Net Kâr":
+                                       kayit["mali_ozet"]["Net Kâr"]  = sayi(v)
+            elif k == "Faal Alani" or k == "Faal Alanı":
+                                       kayit["kunye"]["Faal Alanı"]   = v
+            elif k == "Adres":         kayit["kunye"]["Adres"]        = v
 
-            if   re.search(r"F\s*/\s*K",        k, re.I): kayit["cari"]["F/K"]           = sayi(v)
-            elif re.search(r"FD\s*/\s*FAVÖK",   k, re.I): kayit["cari"]["FD/FAVÖK"]      = sayi(v)
-            elif re.search(r"PD\s*/\s*DD",      k, re.I): kayit["cari"]["PD/DD"]         = sayi(v)
-            elif re.search(r"Piyasa\s*De[ğg]", k, re.I): kayit["cari"]["Piyasa Değeri"] = sayi(v)
-            elif re.search(r"Net\s*K[aâ]r",    k, re.I): kayit["mali_ozet"]["Net Kâr"]  = sayi(v)
-            elif re.search(r"Faal\s*Alan",      k, re.I): kayit["kunye"]["Faal Alanı"]   = v
-            elif re.search(r"Adres",            k, re.I): kayit["kunye"]["Adres"]        = v
-
-    if not kayit["cari"] and not kayit["mali_ozet"]:
-        snippet = soup.get_text()[:300].replace("\n", " ")
-        print(f"\n  [DEBUG] {kod} veri YOK — sayfa: {snippet}")
+    if not kayit["cari"]:
+        snippet = soup.get_text()[:200].replace("\n", " ")
+        print(f"\n  [DEBUG] {kod} veri YOK. Sayfa: {snippet}")
 
     return kayit
 
-# ══════════════════════════════════════════════════════
-# WORKER
-# ══════════════════════════════════════════════════════
-
-DEBUG_HTML_KAYDEDILDI = False
-debug_kilidi = threading.Lock()
-
 def worker_calis(kodlar_q, sonuclar, toplam, worker_id, driver_path, chrome_bin):
-    global cekilen_sayisi, DEBUG_HTML_KAYDEDILDI
+    global cekilen_sayisi
     driver = None
     try:
         driver = chrome_olustur(driver_path, chrome_bin)
     except Exception as e:
-        print(f"\n  [HATA] Worker-{worker_id} Chrome açılamadı: {e}")
-        # Kuyruktaki tüm işleri hata olarak işaretle
+        print(f"\n  [HATA] Worker-{worker_id} Chrome acilmadi: {e}")
         while not kodlar_q.empty():
             try:
                 sira, kod = kodlar_q.get_nowait()
-                sonuclar[sira] = {"kod": kod, "sirket_adi": f"Chrome hatası: {e}"}
-                with sayac_kilidi:
-                    global cekilen_sayisi
-                    cekilen_sayisi += 1
+                sonuclar[sira] = {"kod": kod, "sirket_adi": "Chrome hatasi"}
                 kodlar_q.task_done()
             except queue.Empty:
                 break
@@ -234,22 +183,13 @@ def worker_calis(kodlar_q, sonuclar, toplam, worker_id, driver_path, chrome_bin)
                 sira, kod = kodlar_q.get_nowait()
             except queue.Empty:
                 break
-
             try:
                 html  = sayfa_cek(driver, kod)
-                # İlk hissenin HTML'ini debug için kaydet
-                with debug_kilidi:
-                    if not DEBUG_HTML_KAYDEDILDI:
-                        DEBUG_HTML_KAYDEDILDI = True
-                        with open("debug_sayfa.html", "w", encoding="utf-8") as fh:
-                            fh.write(html)
-                        print(f"\n  [DEBUG] {kod} HTML kaydedildi: debug_sayfa.html ({len(html)} karakter)")
                 kayit = ayristir(html, kod)
                 sonuclar[sira] = kayit
             except Exception as e:
                 print(f"\n  [HATA] Worker-{worker_id} | {kod}: {e}")
-                sonuclar[sira] = {"kod": kod, "sirket_adi": f"HATA: {e}"}
-
+                sonuclar[sira] = {"kod": kod, "sirket_adi": "HATA"}
             with sayac_kilidi:
                 cekilen_sayisi += 1
                 yuzde = (cekilen_sayisi / toplam) * 100
@@ -260,57 +200,44 @@ def worker_calis(kodlar_q, sonuclar, toplam, worker_id, driver_path, chrome_bin)
             kodlar_q.task_done()
     finally:
         if driver:
-            try:
-                driver.quit()
-            except Exception:
-                pass
-
-# ══════════════════════════════════════════════════════
-# EXCEL
-# ══════════════════════════════════════════════════════
+            try: driver.quit()
+            except: pass
 
 def excel_yaz(veri_listesi, dosya_adi):
     wb = Workbook()
     ws = wb.active
     ws.title = "Hisse_Verileri"
-
     for ci, (baslik, _) in enumerate(OZET_SUTUNLAR, 1):
         ws.cell(1, ci, baslik).font = Font(bold=True)
-
-    bos = 0
+    dolu = bos = 0
     for ri, kayit in enumerate(veri_listesi, 2):
         if not kayit:
             bos += 1
             continue
+        if not kayit.get("cari"):
+            bos += 1
+            ws.cell(ri, 1, kayit.get("kod", ""))
+            ws.cell(ri, 2, kayit.get("sirket_adi", ""))
+            continue
+        dolu += 1
         for ci, (_, yol) in enumerate(OZET_SUTUNLAR, 1):
             ws.cell(ri, ci, deger_al(kayit, yol))
-
     wb.save(dosya_adi)
-    dolu = len(veri_listesi) - bos
-    print(f"\n  Excel kaydedildi: {dosya_adi} ({dolu} dolu / {bos} boş kayıt)")
-
-# ══════════════════════════════════════════════════════
-# MAIN
-# ══════════════════════════════════════════════════════
+    print(f"\n  Excel: {dosya_adi} — {dolu} veri dolu / {bos} bos")
 
 def main():
     kodlar = oku_txt(TXT_DOSYA)
     if not kodlar:
         return
-
     toplam = len(kodlar)
-    print(f"\n{toplam} hisse için işlem başladı ({PARALEL_TARAYICI} paralel tarayıcı)\n")
-
-    # ChromeDriver ve Chrome binary'yi TEK SEFERLIK bul/indir
+    print(f"\n{toplam} hisse isleniyor ({PARALEL_TARAYICI} paralel tarayici)\n")
     driver_path, chrome_bin = chrome_ve_driver_bul()
     print()
-
     kodlar_q = queue.Queue()
     for i, k in enumerate(kodlar):
         kodlar_q.put((i, k))
-
     sonuclar = [None] * toplam
-    threads  = []
+    threads = []
     for wid in range(1, min(PARALEL_TARAYICI, toplam) + 1):
         t = threading.Thread(
             target=worker_calis,
@@ -319,12 +246,10 @@ def main():
         )
         t.start()
         threads.append(t)
-
     for t in threads:
         t.join()
-
     excel_yaz(sonuclar, EXCEL_DOSYA)
-    print(f"Tamamlandı → {EXCEL_DOSYA}")
+    print(f"Tamamlandi -> {EXCEL_DOSYA}")
 
 if __name__ == "__main__":
     main()
