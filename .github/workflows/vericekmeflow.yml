@@ -1,4 +1,5 @@
 name: BIST Temel Veri Çekme
+
 on:
   push:
     branches: [ "main" ]
@@ -7,6 +8,7 @@ on:
 jobs:
   run-scraper:
     runs-on: ubuntu-latest
+
     steps:
     - name: Repo kodlarını getir
       uses: actions/checkout@v4
@@ -16,10 +18,11 @@ jobs:
       with:
         python-version: "3.10"
 
-    - name: Chrome Kur          # ← BUNU EKLE
+    - name: Chrome ve ChromeDriver Kur
       uses: browser-actions/setup-chrome@latest
       with:
         chrome-version: stable
+        install-chromedriver: true
 
     - name: Kütüphaneleri Yükle
       run: |
@@ -37,3 +40,4 @@ jobs:
       with:
         name: is-yatirim-verileri
         path: IsYatirim_Guncel.xlsx
+        if-no-files-found: error
