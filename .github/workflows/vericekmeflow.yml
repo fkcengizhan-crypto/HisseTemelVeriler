@@ -1,33 +1,36 @@
 name: BIST Temel Veri Çekme
-
 on:
   push:
     branches: [ "main" ]
-  workflow_dispatch: # Bu seçenek, GitHub üzerinden manuel olarak "Çalıştır" demeni sağlar.
+  workflow_dispatch:
 
 jobs:
   run-scraper:
     runs-on: ubuntu-latest
-
     steps:
     - name: Repo kodlarını getir
       uses: actions/checkout@v4
-
+      
     - name: Python Kur
       uses: actions/setup-python@v5
       with:
         python-version: "3.10"
-
+        
     - name: Kütüphaneleri Yükle
       run: |
         python -m pip install --upgrade pip
         pip install selenium beautifulsoup4 openpyxl webdriver-manager
-
+        
     - name: Scraper Kodunu Çalıştır
-      run: python vericek.py  # <--- İşte kodu çalıştıran satır burası!
-
-    - name: Oluşan Excel Dosyasını Kaydet (Artifact)
+      run: python vericek.py
+      
+    - name: Excel Dosyasını Kontrol Et
+      run: ls -la *.xlsx || echo "Excel dosyası bulunamadı!"
+      
+    - name: Excel Dosyasını Kaydet
       uses: actions/upload-artifact@v4
       with:
         name: is-yatirim-verileri
-        path: "*.xlsx" # Klasördeki tüm .xlsx dosyalarını paketler
+        path: ./
+        pattern: "**/*.xlsx"
+        if-no-files-found: error  # ⚠️ Dosya yoksa workflow fail olacak
