@@ -25,10 +25,10 @@ jobs:
       run: python vericek.py
 
     - name: Excel Dosyasını Kontrol Et
-      run: ls -la *.xlsx || echo "Excel dosyası bulunamadı!"
+      run: ls -la IsYatirim_Guncel.xlsx || echo "Excel dosyası bulunamadı!"
 
     - name: Excel Dosyasını Kaydet
       uses: actions/upload-artifact@v4
       with:
-        name: bistverileri
-        path: "*.xlsx"
+        name: is-yatirim-verileri
+        path: IsYatirim_Guncel.xlsx
