@@ -28,9 +28,7 @@ jobs:
       run: ls -la *.xlsx || echo "Excel dosyası bulunamadı!"
       
     - name: Excel Dosyasını Kaydet
-      uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v4
       with:
         name: is-yatirim-verileri
-        path: ./
-        pattern: "**/*.xlsx"
-        if-no-files-found: error  # ⚠️ Dosya yoksa workflow fail olacak
+      path: "**/*.xlsx"   # pattern yerine path içine al
