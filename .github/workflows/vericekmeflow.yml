@@ -41,3 +41,10 @@ jobs:
         name: is-yatirim-verileri
         path: IsYatirim_Guncel.xlsx
         if-no-files-found: error
+
+    - name: Debug HTML Kaydet
+      uses: actions/upload-artifact@v4
+      with:
+        name: debug-html
+        path: debug_sayfa.html
+        if-no-files-found: warn
