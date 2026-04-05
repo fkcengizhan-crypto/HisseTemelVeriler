@@ -1,4 +1,4 @@
-import sys, time, re, os, queue, threading
+import sys, time, re, os, queue, threading, shutil
 from bs4 import BeautifulSoup
 from openpyxl import Workbook
 from openpyxl.styles import Font
@@ -78,18 +78,32 @@ def oku_txt(dosya):
     return kodlar
 
 def chrome_olustur(driver_path: str):
+    """driver_path: main()'de bir kez indirilen ChromeDriver binary yolu."""
     opts = Options()
-    opts.add_argument("--headless=new")   # ← yeni headless modu (daha stabil)
+    opts.add_argument("--headless")
     opts.add_argument("--no-sandbox")
     opts.add_argument("--disable-gpu")
     opts.add_argument("--disable-dev-shm-usage")
     opts.add_argument("--window-size=1920,1080")
-    # setup-chrome'un kurduğu binary'yi bul
-    chrome_bin = shutil.which("google-chrome") or shutil.which("chromium-browser") or shutil.which("chromium")
-    if chrome_bin:
-        opts.binary_location = chrome_bin
+    opts.add_argument(
+        "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/120.0.0.0 Safari/537.36"
+    )
     svc = Service(driver_path)
     return webdriver.Chrome(service=svc, options=opts)
+
+def driver_path_bul():
+    """
+    Önce sistem PATH'indeki chromedriver'ı dene (GitHub Actions setup-chrome),
+    bulamazsa webdriver-manager ile indir.
+    """
+    sistem = shutil.which("chromedriver")
+    if sistem:
+        print(f"  Sistem chromedriver kullanılıyor: {sistem}")
+        return sistem
+    print("  Sistem chromedriver bulunamadı, webdriver-manager ile indiriliyor...")
+    return ChromeDriverManager().install()
 
 # ══════════════════════════════════════════════════════
 # SAYFA ÇEKME (RETRY MANTIĞIYLA)
@@ -260,9 +274,9 @@ def main():
     toplam = len(kodlar)
     print(f"\n{toplam} hisse için işlem başladı... ({PARALEL_TARAYICI} paralel tarayıcı)\n")
 
-    # ── ChromeDriver'ı tek seferlik indir (race condition önlemi) ──
-    print("  ChromeDriver indiriliyor/kontrol ediliyor...")
-    driver_path = ChromeDriverManager().install()
+    # ── ChromeDriver'ı tek seferlik bul/indir (race condition önlemi) ──
+    print("  ChromeDriver aranıyor...")
+    driver_path = driver_path_bul()
     print(f"  ChromeDriver hazır: {driver_path}\n")
 
     kodlar_q = queue.Queue()
