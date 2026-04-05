@@ -78,18 +78,16 @@ def oku_txt(dosya):
     return kodlar
 
 def chrome_olustur(driver_path: str):
-    """driver_path: main()'de bir kez indirilen ChromeDriver binary yolu."""
     opts = Options()
-    opts.add_argument("--headless")
+    opts.add_argument("--headless=new")   # ← yeni headless modu (daha stabil)
     opts.add_argument("--no-sandbox")
     opts.add_argument("--disable-gpu")
     opts.add_argument("--disable-dev-shm-usage")
     opts.add_argument("--window-size=1920,1080")
-    opts.add_argument(
-        "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/120.0.0.0 Safari/537.36"
-    )
+    # setup-chrome'un kurduğu binary'yi bul
+    chrome_bin = shutil.which("google-chrome") or shutil.which("chromium-browser") or shutil.which("chromium")
+    if chrome_bin:
+        opts.binary_location = chrome_bin
     svc = Service(driver_path)
     return webdriver.Chrome(service=svc, options=opts)
 
