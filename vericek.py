@@ -205,8 +205,11 @@ def ayristir(html, kod):
 # WORKER
 # ══════════════════════════════════════════════════════
 
+DEBUG_HTML_KAYDEDILDI = False
+debug_kilidi = threading.Lock()
+
 def worker_calis(kodlar_q, sonuclar, toplam, worker_id, driver_path, chrome_bin):
-    global cekilen_sayisi
+    global cekilen_sayisi, DEBUG_HTML_KAYDEDILDI
     driver = None
     try:
         driver = chrome_olustur(driver_path, chrome_bin)
@@ -234,6 +237,13 @@ def worker_calis(kodlar_q, sonuclar, toplam, worker_id, driver_path, chrome_bin)
 
             try:
                 html  = sayfa_cek(driver, kod)
+                # İlk hissenin HTML'ini debug için kaydet
+                with debug_kilidi:
+                    if not DEBUG_HTML_KAYDEDILDI:
+                        DEBUG_HTML_KAYDEDILDI = True
+                        with open("debug_sayfa.html", "w", encoding="utf-8") as fh:
+                            fh.write(html)
+                        print(f"\n  [DEBUG] {kod} HTML kaydedildi: debug_sayfa.html ({len(html)} karakter)")
                 kayit = ayristir(html, kod)
                 sonuclar[sira] = kayit
             except Exception as e:
