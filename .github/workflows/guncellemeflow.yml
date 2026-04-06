@@ -1,0 +1,46 @@
+name: BIST Temel Veri Çekme
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  run-scraper:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write   # Repoya commit yapabilmek için
+
+    steps:
+    - name: Repo kodlarını getir
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Python Kur
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.10"
+
+    - name: Chrome ve ChromeDriver Kur
+      uses: browser-actions/setup-chrome@latest
+      with:
+        chrome-version: stable
+        install-chromedriver: true
+
+    - name: Kütüphaneleri Yükle
+      run: |
+        python -m pip install --upgrade pip
+        pip install selenium beautifulsoup4 openpyxl webdriver-manager
+
+    - name: Scraper Kodunu Çalıştır
+      run: python vericek.py
+
+    - name: Excel Dosyasını Repoya Commit Et
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git add IsYatirim_Guncel.xlsx
+        git diff --staged --quiet || git commit -m "Excel güncellendi: $(date +'%Y-%m-%d %H:%M')"
+        git push
