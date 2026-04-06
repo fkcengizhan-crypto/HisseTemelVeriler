@@ -20,7 +20,7 @@ PARALEL_TARAYICI = 7
 SAYFA_BEKLEME    = 5
 MAX_DENEME       = 2
 TXT_DOSYA        = "hisseisimleri.txt"
-EXCEL_DOSYA      = "IsYatirim_Guncel.xlsx"
+EXCEL_DOSYA      = "BISTTemelVeriler.xlsx"
 
 cekilen_sayisi = 0
 sayac_kilidi   = threading.Lock()
