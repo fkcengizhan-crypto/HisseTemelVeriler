@@ -1,92 +1,38 @@
-name: BIST Screener - Günlük Veri Çekimi
+name: Veri Güncelle
 
 on:
-  schedule:
-    # Her gün 18:30 Türkiye saati = 15:30 UTC (yaz saati: UTC+3)
-    - cron: "30 15 * * 1-5"   # Pazartesi–Cuma (borsa günleri)
+  # GitHub'ın kendi zamanlayıcısını kapattık. 
+  # Artık sadece Google Apps Script tetiklediğinde çalışacak.
+  workflow_dispatch: 
 
-  # Elle de çalıştırabilmek için
-  workflow_dispatch:
+permissions:
+  contents: write
 
 jobs:
-  scrape:
+  guncelle:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
-
-    permissions:
-      contents: write   # Repo'ya commit atabilmek için
-
     steps:
-      # ── 1. Kodu çek ──────────────────────────────────────────────
-      - name: Repo'yu çek
+      - name: Repoyu indir
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0   # Tüm geçmişi çek (commit için gerekli)
 
-      # ── 2. Python kur ─────────────────────────────────────────────
-      - name: Python 3.11 kur
+      - name: Python kur
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
-          cache: "pip"
+          python-version: '3.11'
 
-      # ── 3. Bağımlılıkları yükle ───────────────────────────────────
-      - name: Bağımlılıkları yükle
-        run: |
-          pip install -r requirements.txt
-          playwright install chromium
-          # Ubuntu 24.04'te libasound2 → libasound2t64 olarak yeniden adlandırıldı.
-          # install-deps yerine manuel kurulum yapıyoruz:
-          sudo apt-get update
-          sudo apt-get install -y \
-            libasound2t64 \
-            libatk-bridge2.0-0 \
-            libatk1.0-0 \
-            libcups2 \
-            libdbus-1-3 \
-            libdrm2 \
-            libgbm1 \
-            libgtk-3-0 \
-            libnspr4 \
-            libnss3 \
-            libx11-xcb1 \
-            libxcomposite1 \
-            libxdamage1 \
-            libxfixes3 \
-            libxkbcommon0 \
-            libxrandr2 \
-            xvfb
+      - name: Kütüphaneleri kur
+        run: pip install -r requirements.txt
 
-      # ── 4. Scraper'ı çalıştır ─────────────────────────────────────
-      - name: Veri çek
-        env:
-          TV_SESSION_ID: ${{ secrets.TV_SESSION_ID }}
+      - name: Playwright Chromium kur
+        run: playwright install chromium --with-deps
+
+      - name: Veriyi güncelle
         run: python vericek.py
 
-      # ── 5. Excel dosyasını repo'ya kaydet ─────────────────────────
-      - name: Excel'i repo'ya commit et
+      - name: Dosyaları repoya kaydet
         run: |
-          git config user.name  "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-          git add data/
-
-          # Değişiklik yoksa commit atma
-          if git diff --staged --quiet; then
-            echo "ℹ️  Yeni veri yok, commit atlanıyor."
-          else
-            DATE=$(date +'%d.%m.%Y %H:%M')
-            ROWS=$(python -c "
-          import openpyxl, glob, os
-          files = sorted(glob.glob('data/bist_screener_2*.xlsx'))
-          if files:
-              wb = openpyxl.load_workbook(files[-1])
-              ws = wb.active
-              print(ws.max_row - 1)
-          else:
-              print('?')
-          ")
-            git commit -m "📊 BIST Screener | $DATE | $ROWS hisse"
-            git push
-            echo "✅ Commit atıldı: $DATE — $ROWS hisse"
-          fi
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add tum_veriler.xlsx veriler.json || true
+          git diff --staged --quiet || git commit -m "Guncellendi: $(date +'%d.%m.%Y %H:%M')"
+          git push
