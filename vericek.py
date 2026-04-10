@@ -324,7 +324,6 @@ def excel_yaz(veri_listesi, dosya_adi):
     wb.save(dosya_adi)
     print(f"\n  Excel: {dosya_adi} — {dolu} hisse / {bos} bos")
 
-
 def json_yaz(veri_listesi, dosya_adi):
     """
     veri_listesi: excel_yaz ile aynı formatta kayıt listesi
@@ -342,10 +341,10 @@ def json_yaz(veri_listesi, dosya_adi):
             # JSON'da None, float, str olarak kalsın
             satir[baslik] = deger
         tum_veriler.append(satir)
-    
+
     with open(dosya_adi, "w", encoding="utf-8") as f:
         json.dump(tum_veriler, f, ensure_ascii=False, indent=2)
-    
+
     print(f"  JSON: {dosya_adi} — {len([v for v in tum_veriler if v])} hisse kaydedildi.")
 
 def main():
@@ -369,7 +368,7 @@ def main():
         threads.append(t)
     for t in threads: t.join()
     excel_yaz(sonuclar, EXCEL_DOSYA)
-	json_yaz(sonuclar, "BISTTemelVeriler.json")
+    json_yaz(sonuclar, "BISTTemelVeriler.json")
     print(f"Tamamlandi -> {EXCEL_DOSYA}")
 
 if __name__ == "__main__":
