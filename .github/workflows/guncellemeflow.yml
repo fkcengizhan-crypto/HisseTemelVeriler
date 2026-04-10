@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     permissions:
-      contents: write   # Repoya commit yapabilmek için
+      contents: write
 
     steps:
     - name: Repo kodlarını getir
@@ -37,10 +37,10 @@ jobs:
     - name: Scraper Kodunu Çalıştır
       run: python vericek.py
 
-	- name: Excel ve JSON Dosyasını Repoya Commit Et
-	  run: |
-		git config user.name "github-actions[bot]"
-		git config user.email "github-actions[bot]@users.noreply.github.com"
-		git add BISTTemelVeriler.xlsx BISTTemelVeriler.json
-		git diff --staged --quiet || git commit -m "Veri güncellendi: $(date +'%Y-%m-%d %H:%M')"
-		git push
+    - name: Excel ve JSON Dosyasını Repoya Commit Et
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git add BISTTemelVeriler.xlsx BISTTemelVeriler.json
+        git diff --staged --quiet || git commit -m "Veri güncellendi: $(date +'%Y-%m-%d %H:%M')"
+        git push
