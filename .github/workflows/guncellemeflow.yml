@@ -37,10 +37,10 @@ jobs:
     - name: Scraper Kodunu Çalıştır
       run: python vericek.py
 
-    - name: Excel Dosyasını Repoya Commit Et
-      run: |
-        git config user.name "github-actions[bot]"
-        git config user.email "github-actions[bot]@users.noreply.github.com"
-        git add BISTTemelVeriler.xlsx
-        git diff --staged --quiet || git commit -m "Excel güncellendi: $(date +'%Y-%m-%d %H:%M')"
-        git push
+	- name: Excel ve JSON Dosyasını Repoya Commit Et
+	  run: |
+		git config user.name "github-actions[bot]"
+		git config user.email "github-actions[bot]@users.noreply.github.com"
+		git add BISTTemelVeriler.xlsx BISTTemelVeriler.json
+		git diff --staged --quiet || git commit -m "Veri güncellendi: $(date +'%Y-%m-%d %H:%M')"
+		git push
