@@ -1,4 +1,4 @@
-import sys, time, re, os, queue, threading, shutil
+import sys, time, re, os, queue, threading, shutil, json
 from bs4 import BeautifulSoup
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment
@@ -324,6 +324,30 @@ def excel_yaz(veri_listesi, dosya_adi):
     wb.save(dosya_adi)
     print(f"\n  Excel: {dosya_adi} — {dolu} hisse / {bos} bos")
 
+
+def json_yaz(veri_listesi, dosya_adi):
+    """
+    veri_listesi: excel_yaz ile aynı formatta kayıt listesi
+    dosya_adi: çıktı JSON dosyasının adı (örn. BISTTemelVeriler.json)
+    """
+    tum_veriler = []
+    for kayit in veri_listesi:
+        if not kayit:
+            # Boş kayıtları atla veya None ile geç
+            tum_veriler.append(None)
+            continue
+        satir = {}
+        for baslik, yol in OZET_SUTUNLAR:
+            deger = deger_al(kayit, yol)
+            # JSON'da None, float, str olarak kalsın
+            satir[baslik] = deger
+        tum_veriler.append(satir)
+    
+    with open(dosya_adi, "w", encoding="utf-8") as f:
+        json.dump(tum_veriler, f, ensure_ascii=False, indent=2)
+    
+    print(f"  JSON: {dosya_adi} — {len([v for v in tum_veriler if v])} hisse kaydedildi.")
+
 def main():
     kodlar = oku_txt(TXT_DOSYA)
     if not kodlar: return
@@ -345,6 +369,7 @@ def main():
         threads.append(t)
     for t in threads: t.join()
     excel_yaz(sonuclar, EXCEL_DOSYA)
+	json_yaz(sonuclar, "BISTTemelVeriler.json")
     print(f"Tamamlandi -> {EXCEL_DOSYA}")
 
 if __name__ == "__main__":
